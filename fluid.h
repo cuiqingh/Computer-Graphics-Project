@@ -29,11 +29,13 @@ private:
 	int render;		//当前缓冲区
 
 	int* indices[3];	//存储每个三角形面片的顶点在缓冲区中的索引
+	float* texcoords[3][2];		//在纹理图片中的坐标（此时纹理图片可看做1×1）
 	float k1, k2, k3;	//多项式系数
+	int texture;
 
 public:
 
-	Fluid(long length, long width, float size, float time, float speed) {
+	Fluid(long length, long width, float size, float time, float speed, int texture) {
 		/// <summary>
 		/// 初始化一个流体类
 		/// </summary>
@@ -42,7 +44,9 @@ public:
 		/// <param name="size">单元流体的大小</param>
 		/// <param name="time">时间参数</param>
 		/// <param name="speed">波速</param>
+		/// <param name="texture">纹理</param>
 		/// 
+		this->texture = texture;
 
 		this->length = length;
 		this->width = width;
@@ -52,10 +56,12 @@ public:
 		this->render = 0;
 		buffer[0] = new Point3D[this->pointNum];
 		buffer[1] = new Point3D[this->pointNum];
-		
 
 		for (int i = 0; i < 3; i++)
 			indices[i] = new int[this->faceNum];
+
+		for (int i = 0; i < 6; i++)
+			texcoords[i % 3][i / 3] = new float[this->faceNum];
 
 		//流体表面方程的多项式系数
 		float f1 = speed * speed * time * time / (size * size);
@@ -99,6 +105,13 @@ public:
 				indices[0][a] = t;
 				indices[1][a] = t + 1;
 				indices[2][a] = t + this->length;
+
+				texcoords[0][0][a] = i * lUnit;
+				texcoords[0][1][a] = j * wUnit;
+				texcoords[1][0][a] = (i + 1) * lUnit;
+				texcoords[1][1][a] = j * wUnit;
+				texcoords[2][0][a] = i * lUnit;
+				texcoords[2][1][a] = (j + 1) * wUnit;
 			}
 		}
 
@@ -109,6 +122,13 @@ public:
 				indices[0][a] = t;
 				indices[1][a] = t - 1;
 				indices[2][a] = t - this->length;
+
+				texcoords[0][0][a] = i * lUnit;
+				texcoords[0][1][a] = j * wUnit;
+				texcoords[1][0][a] = (i - 1) * lUnit;
+				texcoords[1][1][a] = j * wUnit;
+				texcoords[2][0][a] = i * lUnit;
+				texcoords[2][1][a] = (j - 1) * wUnit;
 			}
 		}
 	};
@@ -135,33 +155,33 @@ public:
 
 		//交换缓冲区
 		render = 1 - render;
-
-		//计算法线和切线
-		for (long j = 1; j < this->length - 1; j++)
-		{
-			const Point3D* next = buffer[render] + j * this->width;
-		}
 	}
 
 	void draw()
 	{
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, texture);  
 		glBegin(GL_TRIANGLES);	//绘制每个三角形面片
 
 		for (int i = 0; i < this->faceNum; i++) {
 
+			glTexCoord2f(texcoords[0][0][i], texcoords[0][1][i]);
 			glVertex3f(buffer[render][indices[0][i]].x,
 				buffer[render][indices[0][i]].y,
 				buffer[render][indices[0][i]].z);
 
+			glTexCoord2f(texcoords[1][0][i], texcoords[1][1][i]);
 			glVertex3f(buffer[render][indices[1][i]].x,
 				buffer[render][indices[1][i]].y,
 				buffer[render][indices[1][i]].z);
 
+			glTexCoord2f(texcoords[2][0][i], texcoords[2][1][i]);
 			glVertex3f(buffer[render][indices[2][i]].x,
 				buffer[render][indices[2][i]].y,
 				buffer[render][indices[2][i]].z);
 		}
 
 		glEnd();
+		glDisable(GL_TEXTURE_2D);
 	};
 };
