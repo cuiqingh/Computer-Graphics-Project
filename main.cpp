@@ -1,46 +1,101 @@
-#define _CRT_SECURE_NO_WARNINGS		//忽略某些警告
+#define _CRT_SECURE_NO_WARNINGS
 #include <string.h>      
 #include <time.h> 
+#include <math.h>
 #include "fluid.h"
 #include "texture.h"
 
-GLuint texture[5];
+GLuint texture[6];
 Fluid* f;
 
-float center[] = { 25, 10, 0 };
-float eye[] = { 25, -50, 50 };
-float up[] = { 0 , 1, 0 };
-short flag = 0;		//当前调整视图模式，0为眼位置，1为视点位置，2为观察角度
+static float angleXz = 0.0;
+static float angleXy = 0.0;
+static float x = 50.0f, y = 100.0f, z = 10.0f;
+float PI = 3.14159f;
+
+void skyBox() {
+	float size = 199.0;
+	float height = 100.0;
+	//天顶
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture[1]);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(1.0, 1.0, height);
+	glTexCoord2f(1.0, 0.0); glVertex3f(size, 1.0, height);
+	glTexCoord2f(1.0, 1.0); glVertex3f(size, size, height);
+	glTexCoord2f(0.0, 1.0); glVertex3f(1.0, size, height);
+	glEnd();
+
+	//左边
+	glBindTexture(GL_TEXTURE_2D, texture[2]);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(1.0, 1.0, -1.0);
+	glTexCoord2f(1.0, 0.0); glVertex3f(1.0, size, -1.0);
+	glTexCoord2f(1.0, 1.0); glVertex3f(1.0, size, height);
+	glTexCoord2f(0.0, 1.0); glVertex3f(1.0, 1.0, height);
+	glEnd();
+
+	//前边
+	glBindTexture(GL_TEXTURE_2D, texture[3]);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(1.0, size, -1.0);
+	glTexCoord2f(1.0, 0.0); glVertex3f(size, size, -1.0);
+	glTexCoord2f(1.0, 1.0); glVertex3f(size, size, height);
+	glTexCoord2f(0.0, 1.0); glVertex3f(1.0, size, height);
+	glEnd();
+
+
+	//右边
+	glBindTexture(GL_TEXTURE_2D, texture[4]);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(size, size, -1.0);
+	glTexCoord2f(1.0, 0.0); glVertex3f(size, 1.0, -1.0);
+	glTexCoord2f(1.0, 1.0); glVertex3f(size, 1.0, height);
+	glTexCoord2f(0.0, 1.0); glVertex3f(size, size, height);
+	glEnd();
+
+	//后边
+	glBindTexture(GL_TEXTURE_2D, texture[5]);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(size, 1.0, -1.0);
+	glTexCoord2f(1.0, 0.0); glVertex3f(1.0, 1.0, -1.0);
+	glTexCoord2f(1.0, 1.0); glVertex3f(1.0, 1.0, height);
+	glTexCoord2f(0.0, 1.0); glVertex3f(size, 1.0, height);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+}
 
 void drawScene()
 {
 	static int count = 0;
 	count++;
-	if (count > 80) {		//设置水波刷新间隔
+	if (count > 80) {
 		count = 0;
 		f->Evaluate();
 	}
 	f->draw();
+	skyBox();
 }
 
 void reshape(int width, int height)
 {
-	glViewport(0, 0, width, height);	//设置视口
+	glViewport(0, 0, width, height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 1.0f, 150.0f);	//设置透视投影
+	gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 1.0f, 300.0f);
 }
+
 
 void init()
 {
 	srand(unsigned(time(NULL)));
-	glEnable(GL_DEPTH_TEST);	//开启深度测试 
+	glEnable(GL_DEPTH_TEST);	
 
-	glGenTextures(1, texture);
-	char target[20];
-	sprintf(target, "wave.bmp");
-	loadTex(0, target, texture);
-	f = new Fluid(100, 100, 0.5, 1, 0.2, texture[0]);
+	glGenTextures(6, texture);
+	loadTex(texture);
+
+	f = new Fluid(100, 100, 2, 1, 0.2, texture[0]);
 }
 
 void display()
@@ -49,12 +104,12 @@ void display()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	gluLookAt(eye[0], eye[1], eye[2], center[0], center[1], center[2], up[0], up[1], up[2]);
+	gluLookAt(x, y, z, float(x + 100 * cos(PI * angleXz / 180.0f)),
+			float(y + 100 * sin(PI * angleXy / 180.0f)),
+			float(z + 100 * sin(PI * angleXz / 180.0f)), 0.0f, 0.0f, 1.0f);
 
-	//设置渲染方式
-	glPolygonMode(GL_FRONT, GL_FILL);		//对多边形使用填充的方式绘制正面
-	glShadeModel(GL_SMOOTH);   //使用插值的方式，渐变填充
-	glEnable(GL_CULL_FACE);	   //不对背面进行渲染
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glShadeModel(GL_SMOOTH);
 
 	drawScene();
 
@@ -64,49 +119,26 @@ void display()
 void keyBoard(unsigned char key, int x, int y) {
 	switch (key)
 	{
-	case '0':
-	case '1':
-	case '2':
-		flag = key - '0';
-		break;
-	case 'd':
-	case 'D':
-		if (flag == 0) eye[0] += 0.5;
-		else if (flag == 1) center[0] += 0.5;
-		else up[0] += 0.1;
-		break;
 	case 'a':
 	case 'A':
-		if (flag == 0) eye[0] -= 0.5;
-		else if (flag == 1) center[0] -= 0.5;
-		else up[0] -= 0.1;
-		break;
-
+		angleXy += 2.0; break;
+	case 'd':
+	case 'D':
+		angleXy -= 2.0; break;
 	case 'w':
 	case 'W':
-		if (flag == 0) eye[1] += 0.5;
-		else if (flag == 1) center[1] += 0.5;
-		else up[1] += 0.1;
-		break;
-	
+		angleXz += 2.0; break;
 	case 's':
 	case 'S':
-		if (flag == 0) eye[1] -= 0.5;
-		else if (flag == 1) center[1] -= 0.5;
-		else up[1] -= 0.1;
+		angleXz -= 2.0; break;
+	case '1':
+		z += (float)sin(PI * angleXz / 180.0f) * 1.0;
 		break;
-	case 'j':
-	case 'J':
-		if (flag == 0) eye[2] += 0.5;
-		else if (flag == 1) center[2] += 0.5;
-		else up[2] += 0.1;
-		break;
-	case 'k':
-	case 'K':
-		if (flag == 0) eye[2] -= 0.5;
-		else if (flag == 1) center[2] -= 0.5;
-		else up[2] -= 0.1;
+	case '2':
+		z -= (float)sin(PI * angleXz / 180.0f) * 1.0;
 	}
+	
+	glutPostRedisplay();
 }
 
 int main(int argc, char* argv[])

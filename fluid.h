@@ -82,10 +82,10 @@ public:
 				else {
 					//Ëæ»ú¸³Öµ
 					int r = rand() % 5;
-					if (r == 0) buffer[0][a].set(size * i, y, buffer[0][a - 1].z + 0.3f * (rand() % 10 / 10.0f));
-					else if(r == 1) buffer[0][a].set(size * i, y, buffer[0][a - 1].z - 0.3f * (rand() % 10 / 10.0f));
-					else if(r == 2) buffer[0][a].set(size * i, y, buffer[0][a - this->length].z + 0.3f * (rand() % 10 / 10.0f));
-					else if(r == 3) buffer[0][a].set(size * i, y, buffer[0][a - this->length].z - 0.3f * (rand() % 10 / 10.0f));
+					if (r == 0) buffer[0][a].set(size * i, y, buffer[0][a - 1].z + 0.5f * (rand() % 10 / 10.0f));
+					else if(r == 1) buffer[0][a].set(size * i, y, buffer[0][a - 1].z - 0.5f * (rand() % 10 / 10.0f));
+					else if(r == 2) buffer[0][a].set(size * i, y, buffer[0][a - this->length].z + 0.5f * (rand() % 10 / 10.0f));
+					else if(r == 3) buffer[0][a].set(size * i, y, buffer[0][a - this->length].z - 0.5f * (rand() % 10 / 10.0f));
 					else buffer[0][a].set(size * i, y, 0.0f);
 				}
 				buffer[1][a] = buffer[0][a];

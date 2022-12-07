@@ -16,6 +16,7 @@ static unsigned char *LoadBmpFile(char *filename, BITMAPINFOHEADER *bmpInfoHeade
 	BITMAPFILEHEADER bmpFileHeader;
 	fread(&bmpFileHeader, sizeof(BITMAPFILEHEADER), 1, filePtr);	// 读入BMP文件头
 	if (bmpFileHeader.bfType != 0x4D42) {	// 验证是否为bitmap文件
+		
 		fprintf(stderr, "The file is not a bitmap file.\n");
 		return NULL;
 	}
@@ -41,25 +42,34 @@ static unsigned char *LoadBmpFile(char *filename, BITMAPINFOHEADER *bmpInfoHeade
 }
 
 //加载纹理
-void loadTex(int i, char *filename, GLuint* texture)
+void loadTex(GLuint* texture)
 {
+	char filenames[6][20];
+	sprintf(filenames[0], "wave.bmp");
+	sprintf(filenames[1], "top.bmp");
+	sprintf(filenames[2], "left.bmp");
+	sprintf(filenames[3], "front.bmp");
+	sprintf(filenames[4], "right.bmp");
+	sprintf(filenames[5], "back.bmp");
+	for (int i = 0; i < 6; i++) {
 
-	BITMAPINFOHEADER bmpInfoHeader;           // BMP信息头 
-	unsigned char* bmpData = LoadBmpFile(filename, &bmpInfoHeader);
- 
-	glBindTexture(GL_TEXTURE_2D, texture[i]);	//绑定二维纹理
+		BITMAPINFOHEADER bmpInfoHeader;
+		unsigned char* bmpData = LoadBmpFile(filenames[i], &bmpInfoHeader);
+		glBindTexture(GL_TEXTURE_2D, texture[i]);
 
-	// 确定纹理像素映射到真实像素的方式，这里使用线性插值的方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
- 
-	glTexImage2D(GL_TEXTURE_2D,
-		0,				//纹理单元层次，这里不是mipmap，取0
-		GL_RGB,			//纹理单元中数据格式
-		bmpInfoHeader.biWidth,		//纹理宽度
-		bmpInfoHeader.biHeight,		//纹理高度
-		0,			//指定纹理单元的边框，如果包含边框取值为1，不包含边框取值为0   
-		GL_RGB,     //加载图片的数据格式
-		GL_UNSIGNED_BYTE,		//每个颜色的数据类型
-		bmpData);    //纹理图片数据
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+		glTexImage2D(GL_TEXTURE_2D,
+			0,				//纹理单元层次，这里不是mipmap，取0
+			GL_RGB,			//纹理单元中数据格式
+			bmpInfoHeader.biWidth,		//纹理宽度
+			bmpInfoHeader.biHeight,		//纹理高度
+			0,			//指定纹理单元的边框，如果包含边框取值为1，不包含边框取值为0   
+			GL_RGB,     //加载图片的数据格式
+			GL_UNSIGNED_BYTE,		//每个颜色的数据类型
+			bmpData);    //纹理图片数据
+	}
+
+	
 }
