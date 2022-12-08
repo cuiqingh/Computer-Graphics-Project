@@ -291,3 +291,8 @@ void computeNormal() {
 之后经过测试，发现光照效果不明显，不知道是法向量计算错误还是全局光照设置有问题，请各位自行判断。
 
 <a href="result">最终效果</a>
+
+### <a name="run">程序运行</a>
+本项目测试时用的环境为Visual Studio 2019，用到的OpenGL库为"GL/GLUT.H"，具体环境搭建可以参考
+<a href="https://blog.csdn.net/lofone/article/details/103625169">此篇文章</a>，注意安装Nuengl管理。
+运行需要包含的头文件在"头文件"文件夹中，纹理贴图都放在了"资源文件"文件夹中，主程序为main.cpp，将其导入一个空项目中即可编译运行。
