@@ -290,7 +290,7 @@ void computeNormal() {
 ```
 之后经过测试，发现光照效果不明显，不知道是法向量计算错误还是全局光照设置有问题，请各位自行判断。
 
-<a href="result">最终效果</a>
+<a href="#result">最终效果</a>
 
 ### <a name="run">程序运行</a>
 本项目测试时用的环境为Visual Studio 2019，用到的OpenGL库为"GL/GLUT.H"，具体环境搭建可以参考
