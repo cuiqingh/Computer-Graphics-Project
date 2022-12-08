@@ -1,6 +1,6 @@
 # Computer-Graphics-Project
 计算机图形学大作业
-### 最终效果如下
+### <a name="result">最终效果如下</a>
 <img src="https://github.com/cuiqingh/Computer-Graphics-Project/blob/main/img/%E6%9C%80%E5%90%8E%E6%95%88%E6%9E%9C.gif" width="30%">
 
 ---------
@@ -176,3 +176,118 @@ gluLookAt(x, y, z, float(x + 100 * cos(PI * angleXz / 180.0f)),
 (这里可以看到水面还是有明显的边界感，因为此前的版本纹理映射算法有些小bug，在之后版本已经调整好了)
 
 ### <a name="light">添加光照</a>
+在场景中添加光源，包括环境光、漫射光、镜面反射和光源，还有水面的材质设置，代码包括以下:
+```C++
+GLfloat ambient[] = { 2.0f, 2.0f, 2.0f, 1.0f };		// 整个场景的环境光强度 
+GLfloat diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+GLfloat specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };		//漫射光
+GLfloat position[] = { 100.0f, 180.0f, 180.0f, 1.0f };	//光源位置
+GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };	//镜面反射参数
+GLfloat mat_shininess[] = { 50.0 };		//高光指数
+
+glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);     //设置材质
+glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+
+glLightfv(GL_LIGHT0, GL_POSITION, position);
+glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+
+glEnable(GL_LIGHTING);		//启用光源
+glEnable(GL_LIGHT0);
+glEnable(GL_DEPTH_TEST);
+```
+其中，反射光需要得到顶点的法向量，法向量的计算较为复杂，先通过计算得到每个面元的法向量，如果以面法向量作为顶点法向量，
+得到的反射效果如下:
+
+<img src="https://github.com/cuiqingh/Computer-Graphics-Project/blob/main/img/%E4%BB%A5%E9%9D%A2%E6%B3%95%E5%90%91%E9%87%8F%E7%9A%84%E5%85%89%E7%85%A7%E6%95%88%E6%9E%9C.gif" width="30%">
+
+即类似镜片的效果，然后计算顶点法向量。如果一个顶点在多个面中，则需要取相关的所有面的法向量之和再规范化为单位向量，这部分需要讨论边界和内部节点，代码如下:
+```C++
+void computeNormal() {
+	//计算所有三角面元的法向量
+	long idx = 0;
+	for (int i = 0; i < this->width; i++) {
+		for (int j = 0; j < this->length; j++, idx++) {
+
+			long t = i * (this->length + 1) + j;
+			int i_0 = t;
+			int i_1 = t + 1;
+			int i_2 = t + this->length + 1;
+
+			Vector3D z_o(buffer[0][i_1].x - buffer[0][i_0].x, buffer[0][i_1].y - buffer[0][i_0].y, buffer[0][i_1].z - buffer[0][i_0].z);
+			Vector3D z_t(buffer[0][i_2].x - buffer[0][i_0].x, buffer[0][i_2].y - buffer[0][i_0].y, buffer[0][i_2].z - buffer[0][i_0].z);
+			faceNormal[idx].cross(z_o, z_t).normalize();
+
+		}
+	}
+	for (int i = 1; i < this->width + 1 ; i++) {
+		for (int j = 1; j < this->length + 1; j++, idx++) {
+
+			long t = i * (this->length + 1) + j;
+			int i_0 = t;
+			int i_1 = t + 1;
+			int i_2 = t + this->length + 1;
+
+			Vector3D z_o(buffer[0][i_1].x - buffer[0][i_0].x, buffer[0][i_1].y - buffer[0][i_0].y, buffer[0][i_1].z - buffer[0][i_0].z);
+			Vector3D z_t(buffer[0][i_2].x - buffer[0][i_0].x, buffer[0][i_2].y - buffer[0][i_0].y, buffer[0][i_2].z - buffer[0][i_0].z);
+			faceNormal[idx].cross(z_o, z_t).normalize();
+
+		}
+	}
+	//计算所有顶点的法向量
+	long triangles = this->width * this->length;
+	idx = 0;
+	for (int i = 0; i < this->width + 1; i++) {
+		for (int j = 0; j < this->length + 1; j++, idx++) {
+			if (i == 0) {
+				//第一行
+				if (j == 0) {
+					vertexNormal[idx] = faceNormal[0];
+				}
+				else if (j == this->length) {
+					vertexNormal[idx] = (faceNormal[idx - 1] + faceNormal[triangles + idx - 1]).normalize();
+				}
+				else {
+					vertexNormal[idx] = (faceNormal[idx - 1] + faceNormal[triangles + idx - 1] + 
+						faceNormal[idx]).normalize();
+				}
+			}
+			else if (i < this->width) {
+				//中间行
+				long base = this->length;
+				if (j == 0) {
+					vertexNormal[idx] = (faceNormal[i * base] + faceNormal[(i - 1) * base] + 
+						faceNormal[(i - 1) * base + triangles]).normalize();
+				}
+				else if (j == this->length) {
+					vertexNormal[idx] = (faceNormal[(i + 1) * base - 1] + faceNormal[(i + 1) * base + triangles - 1] +
+						faceNormal[i * base + triangles - 1]).normalize();
+				}
+				else {
+					vertexNormal[idx] = (faceNormal[i * base + j - 1] + faceNormal[i * base + j + triangles - 1] +
+						faceNormal[i * base + j] + faceNormal[(i - 1) * base + j + triangles - 1] +
+						faceNormal[(i - 1) * base + j] + faceNormal[(i - 1) * base + j + triangles]).normalize();
+				}
+			}
+			else {
+				//最后面一行
+				long base = this->length;
+				if (j == 0) {
+					vertexNormal[idx] = (faceNormal[(i - 1) * base] + faceNormal[(i - 1) * base + 1]).normalize();
+				}
+				else if (j == this->length) {
+					vertexNormal[idx] = faceNormal[i * base - 1];
+				}
+				else {
+					vertexNormal[idx] = (faceNormal[(i - 1) * base + j + triangles - 1] + faceNormal[(i - 1) * base + j] +
+						faceNormal[(i - 1) * base + j + triangles]).normalize();
+				}
+			}
+		}
+	}
+}
+```
+之后经过测试，发现光照效果不明显，不知道是法向量计算错误还是全局光照设置有问题，请各位自行判断。
+
+<a href="result">最终效果</a>
